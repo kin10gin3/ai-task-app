@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>AIタスク管理</title>
+</head>
+<body>
+    <h1>AIタスク管理</h1>
+
+    <form method="POST">
+        <input type="text" name="content" placeholder="タスクを入力..." required>
+        <button type="submit">追加</button>
+    </form>
+
+    <h2>タスク一覧</h2>
+    <table border="1">
+        <tr><th>ID</th><th>内容</th><th>期限</th><th>優先度</th></tr>
+        {% for t in tasks %}
+        <tr>
+            <td>{{ t[0] }}</td>
+            <td>{{ t[1] }}</td>
+            <td>{{ t[2] }}</td>
+            <td>{{ t[3] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
