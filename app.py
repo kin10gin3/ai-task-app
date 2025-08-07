@@ -9,7 +9,46 @@ from openai import OpenAI
 
 # ===== 初期設定 =====
 load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = OpenAI(api_kefrom flask import Flask, request, jsonify
+import openai
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+app = Flask(__name__)
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+@app.route("/")
+def index():
+    return "API is running!"
+
+@app.route("/chat", methods=["POST"])
+def chat():
+    data = request.get_json()
+    message = data.get("message")
+
+    if not message:
+        return jsonify({"error": "No message provided"}), 400
+
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": message}
+            ]
+        )
+        reply = response["choices"][0]["message"]["content"]
+        return jsonify({"reply": reply})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
+y=os.getenv("OPENAI_API_KEY"))
 app = Flask(__name__)
 DB_NAME = "tasks.db"
 
