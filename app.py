@@ -171,3 +171,96 @@ def fix_due_dates():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
+# --- 追加ここから ---
+import re
+from datetime import datetime, timedelta
+import sqlite3
+from flask import jsonify
+
+# version 確認用（デプロイ確認のため・任意）
+APP_VERSION = "fixer-1"
+
+@app.route("/version")
+def version():
+    return APP_VERSION
+
+
+def _iso_from_loose_str(s: str) -> str | None:
+    """
+    YYYY-MM-DD / YYYY/MM/DD / YYYY.MM.DD のようなゆるい日付表記を
+    ISO (YYYY-MM-DD) に正規化
+    """
+    if not isinstance(s, str):
+        return None
+    s = s.strip()
+    m = re.fullmatch(r"(\d{4})[-/\.](\d{1,2})[-/\.](\d{1,2})", s)
+    if m:
+        y, mo, d = map(int, m.groups())
+        return f"{y:04d}-{mo:02d}-{d:02d}"
+    return None
+
+
+def _parse_relative_ja(s: str) -> str | None:
+    """
+    日本語の相対日付をISOに変換
+    例: 今日, 明日, 明後日, 来週, 3日後, 2週間後, 来月, 1か月後
+    """
+    if not isinstance(s, str):
+        return None
+    t = datetime.now().date()
+    s = s.strip()
+
+    if s in ("今日", "本日"):
+        return t.isoformat()
+    if s in ("明日", "あした"):
+        return (t + timedelta(days=1)).isoformat()
+    if s in ("明後日", "あさって"):
+        return (t + timedelta(days=2)).isoformat()
+    if s.startswith("来週"):
+        return (t + timedelta(days=7)).isoformat()
+
+    m = re.fullmatch(r"(\d+)\s*日後", s)
+    if m:
+        return (t + timedelta(days=int(m.group(1)))).isoformat()
+
+    m = re.fullmatch(r"(\d+)\s*週間?後", s)
+    if m:
+        return (t + timedelta(days=7*int(m.group(1)))).isoformat()
+
+    m = re.fullmatch(r"(\d+)\s*(か月|ヶ月|月)後", s)
+    if m:
+        return (t + timedelta(days=30*int(m.group(1)))).isoformat()
+
+    if s == "来月":
+        return (t + timedelta(days=30)).isoformat()
+
+    return None
+
+
+@app.route("/admin/fix_due_dates", methods=["POST"])
+def fix_due_dates():
+    """
+    DB内の既存の due_date を正規化する。
+    例: "unknown", "不明", "2025/8/7" → "2025-08-07" or "不明"
+    ※ 作業後はこのルートを削除/コメントアウトするのを推奨。
+    """
+    DB_PATH = "tasks.db"  # あなたのアプリが使っているDBパス
+    fixed = 0
+    with sqlite3.connect(DB_PATH) as conn:
+        c = conn.cursor()
+        c.execute("SELECT id, due_date FROM tasks")
+        for tid, due in c.fetchall():
+            original = str(due) if due is not None else ""
+            if re.fullmatch(r"\d{4}-\d{2}-\d{2}", original):
+                new_due = original
+            else:
+                new_due = (_iso_from_loose_str(original)
+                           or _parse_relative_ja(original)
+                           or "不明")
+            if new_due != original:
+                c.execute("UPDATE tasks SET due_date=? WHERE id=?", (new_due, tid))
+                fixed += 1
+        conn.commit()
+    return jsonify({"fixed": fixed})
+# --- 追加ここまで ---
