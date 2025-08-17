@@ -1,28 +1,56 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <title>AIタスク管理</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AIタスク管理</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 24px; }
+    h1 { margin-bottom: 12px; }
+    form { display: flex; gap: 8px; margin-bottom: 16px; }
+    input[type="text"] { flex: 1; padding: 10px; font-size: 16px; }
+    button { padding: 10px 16px; font-size: 16px; cursor: pointer; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th, td { border: 1px solid #ddd; padding: 8px; }
+    th { background: #f5f5f5; text-align: left; }
+    .tag { padding: 2px 8px; border-radius: 12px; font-size: 12px; }
+    .high { background:#ffe5e5; }
+    .mid { background:#fff4db; }
+    .low { background:#e9f6ff; }
+  </style>
 </head>
 <body>
-    <h1>AIタスク管理</h1>
+  <h1>AIタスク管理</h1>
+  <form action="/add" method="POST">
+    <input type="text" name="content" placeholder="例）明日までにプレゼン資料を作る" required />
+    <button type="submit">追加</button>
+  </form>
 
-    <form method="POST">
-        <input type="text" name="content" placeholder="タスクを入力..." required>
-        <button type="submit">追加</button>
-    </form>
-
-    <h2>タスク一覧</h2>
-    <table border="1">
-        <tr><th>ID</th><th>内容</th><th>期限</th><th>優先度</th></tr>
-        {% for t in tasks %}
-        <tr>
-            <td>{{ t[0] }}</td>
-            <td>{{ t[1] }}</td>
-            <td>{{ t[2] }}</td>
-            <td>{{ t[3] }}</td>
-        </tr>
-        {% endfor %}
-    </table>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:60px;">ID</th>
+        <th>内容</th>
+        <th style="width:140px;">期限</th>
+        <th style="width:100px;">優先度</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in tasks %}
+      <tr>
+        <td>{{ t[0] }}</td>
+        <td>{{ t[1] }}</td>
+        <td>{{ t[2] }}</td>
+        <td>
+          {% set p = t[3] or '中' %}
+          <span class="tag {{ 'high' if p=='高' else ('low' if p=='低' else 'mid') }}">{{ p }}</span>
+        </td>
+      </tr>
+      {% endfor %}
+      {% if tasks|length == 0 %}
+      <tr><td colspan="4">まだタスクはありません。</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
 </body>
 </html>
